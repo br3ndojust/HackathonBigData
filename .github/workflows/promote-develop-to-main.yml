@@ -36,4 +36,4 @@ jobs:
       - name: Enable auto-merge
         run: gh pr merge "${{ steps.pr.outputs.pr_number }}" --auto --squash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PROMOTE_PR_TOKEN }}
