@@ -5,7 +5,7 @@ on:
     branches: [develop]
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
 
 jobs:
@@ -15,18 +15,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create PR to main
-        id: cpr
-        uses: peter-evans/create-pull-request@v6
-        with:
-          base: main
-          branch: develop
-          title: "chore: sync develop → main"
-          body: "Promoção automática após merge aprovado na develop."
-          delete-branch: false
+      - name: Create or reuse PR to main
+        id: pr
+        run: |
+          PR_NUMBER=$(gh pr list --base main --head develop --json number --jq '.[0].number')
+
+          if [ -z "$PR_NUMBER" ]; then
+            gh pr create \
+              --base main \
+              --head develop \
+              --title "chore: sync develop → main" \
+              --body "Promoção automática após merge aprovado na develop."
+            PR_NUMBER=$(gh pr list --base main --head develop --json number --jq '.[0].number')
+          fi
+
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Enable auto-merge
-        if: steps.cpr.outputs.pull-request-number
-        run: gh pr merge --auto --squash "${{ steps.cpr.outputs.pull-request-number }}"
+        run: gh pr merge "${{ steps.pr.outputs.pr_number }}" --auto --squash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
